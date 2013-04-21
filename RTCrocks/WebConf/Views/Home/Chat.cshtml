@@ -1,0 +1,67 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <script src="/Scripts/jquery-1.8.2.min.js" ></script>
+        <script src="/Scripts/jquery.signalR-1.0.0.js"></script>
+        <script src="/Scripts/mustache.js"></script>
+        <script src="/signalr/hubs"></script>
+    <body>
+        <section>
+            <input type="text" id="message" />
+            <input type="button" id="sendmessage" value="Send" />
+            <input type="hidden" id="displayname"/>
+            <input type="hidden" id="groupname"/>
+            <ul id="discussion">
+            </ul>
+        </section>
+        <script type="text/javascript">
+            $(function () {
+                //focus input
+                function resetField() {
+                    $('#message').val('').focus();
+                }
+                //Get joined group name
+                function getGroup() {
+                    return $('#groupname').val();
+                }
+                //Set random user name
+                $('#displayname').val(Math.random().toString(36).substring(7));
+                resetField();
+                //Enter group for join
+                $('#groupname').val(prompt("enter group name:"));
+                //=====================================
+                //Hub
+                var chat = $.connection.chatHub;
+                //server call this event
+                chat.client.addMessage = function (message) {
+                    $('#discussion').append(
+                        Mustache.to_html("<li><strong>{{Name}}</strong>: <span>{{Text}}</span></li>",
+                            message)
+                    );
+                };
+
+                //Hub is ready
+                $.connection.hub.start().done(function () {
+                    //connect to group
+                    chat.server.join(getGroup());
+
+                    $('#sendmessage').click(function () {
+                        //Call server event
+                        chat.server.send({
+                            name: $('#displayname').val(),
+                            text: $('#message').val(),
+                            group: getGroup()
+                        });
+
+                        resetField();
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>
